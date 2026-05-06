@@ -1,0 +1,23 @@
+[Unit]
+Description=Clawbot Telegram webhook (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=jae
+WorkingDirectory=/home/jae/clawbot
+EnvironmentFile=/home/jae/clawbot/.env
+ExecStart=/home/jae/clawbot/.venv/bin/uvicorn clawbot_webhook:app \
+          --host 127.0.0.1 --port 8090
+Restart=on-failure
+RestartSec=5
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/jae/clawbot
+ReadOnlyPaths=/home/jae/.openclaw/usage
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
