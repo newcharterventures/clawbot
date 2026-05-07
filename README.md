@@ -35,23 +35,36 @@ clawbot/
    sql/seed_prompts.sql  # inserts the ranker + writer prompt rows
    ```
 
-3. **Whop** — get your API key (`whop_sk_...`) and the **forum's experience id**
-   you want to post to. In Whop, every forum is an "experience" — the id you
-   want is the `exp_...` of that forum, NOT the community id. Find it in the
-   Whop dashboard under the forum's settings, or list yours via
-   `GET /api/v5/me/experiences`.
+3. **Whop** — forum posting requires a **private Whop App installed on your whop**.
+   Company API keys do NOT work for `forum_posts` regardless of role/permission
+   configuration (verified empirically against `https://api.whop.com/api/v1/forum_posts`).
+   Setup:
 
-   The endpoint is `POST /api/v5/forums/{exp_id}/posts`. Some Whop tenants also
-   accept the forum's own top-level id at the same path — verify with curl
-   before first live run:
+   1. Whop dashboard → Developer → Apps → create a new app (it will be marked `Private` by default).
+      Note the app id (`app_...`) — this becomes `WHOP_APP_ID`.
+   2. App → **Permissions** tab → Add permissions:
+      - `forum:post:create` (Required)
+      - `forum:read` (Required)
+   3. Install the app on your whop. The app must appear in the whop's left-sidebar
+      app list — that confirms install succeeded. (The app's iframe will show a 404
+      because we never set a `base_url`; that's fine for headless API use.)
+   4. App → **API Key** tab → copy the key (`apik_...`) into `WHOP_API_KEY`.
+   5. Get the forum's experience id from the Whop dashboard under the forum's
+      settings — every forum is an `exp_...`. This becomes `WHOP_FORUM_ID`.
+
+   Verify the wiring:
 
    ```bash
-   curl -X GET "https://api.whop.com/api/v5/forums/${WHOP_FORUM_ID}" \
-     -H "Authorization: Bearer ${WHOP_API_KEY}"
+   curl -sS -X POST "https://api.whop.com/api/v1/forum_posts" \
+     -H "Authorization: Bearer ${WHOP_API_KEY}" \
+     -H "Content-Type: application/json" \
+     -d "{\"experience_id\":\"${WHOP_FORUM_ID}\",\"title\":\"test\",\"content\":\"test\"}"
    ```
 
-   If 404, swap `WHOP_FORUM_ID` to the alternative id (or update the path in
-   `clawbot_webhook.py:post_to_whop`).
+   `200` with a `post_...` id means it works. `400 "Actor is missing all required
+   permissions: forum:post:create"` means the app isn't installed on the whop, OR
+   permissions aren't added on the app, OR you're using a Company API key
+   instead of the App API key.
 
 4. **`.env`** —
    ```bash
